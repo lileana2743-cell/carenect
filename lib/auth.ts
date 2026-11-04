@@ -2,6 +2,7 @@ import { cookies } from 'next/headers';
 import { randomBytes, createHash, scrypt as nodeScrypt, timingSafeEqual } from 'node:crypto';
 import { promisify } from 'node:util';
 import { database } from './care-db';
+import {cloudAccounts,cloudEnabled} from './cloud-store';
 const scrypt = promisify(nodeScrypt);
 export const sessionCookie = 'carenect_session';
 export const sessionSeconds = 60 * 60 * 24 * 30;
@@ -18,17 +19,19 @@ export async function passwordMatches(password: string, encoded: string) {
  const expected = Buffer.from(hash, 'hex');
  return expected.length === result.length && timingSafeEqual(expected, result);
 }
-export function createSession(id: string) {
+export async function createSession(id: string) {
  const token = randomBytes(32).toString('base64url');
+ if(cloudEnabled()){await cloudAccounts.addSession(digest(token),id,Date.now()+sessionSeconds*1000);return token;}
  const db = database();
  db.prepare('DELETE FROM sessions WHERE expires < ?').run(Date.now());
  db.prepare('INSERT INTO sessions(token_hash, account_id, expires) VALUES (?, ?, ?)').run(digest(token), id, Date.now() + sessionSeconds * 1000);
  return token;
 }
-export function revokeSession(token?: string) { if (token) database().prepare('DELETE FROM sessions WHERE token_hash = ?').run(digest(token)); }
+export async function revokeSession(token?: string) { if(token){if(cloudEnabled())await cloudAccounts.revoke(digest(token));else database().prepare('DELETE FROM sessions WHERE token_hash = ?').run(digest(token));} }
 export async function getUser(): Promise<Account | null> {
  const token = (await cookies()).get(sessionCookie)?.value;
  if (!token || token.length > 100) return null;
+ if(cloudEnabled())return await cloudAccounts.user(digest(token));
  return database().prepare('SELECT a.id, a.email, a.name, a.role FROM sessions s JOIN accounts a ON a.id=s.account_id WHERE s.token_hash=? AND s.expires>?').get(digest(token), Date.now()) as Account | undefined || null;
 }
 export function safeReturnTo(value: unknown) {
@@ -39,7 +42,8 @@ export function requestOriginValid(req: Request) {
  const expected = process.env.APP_ORIGIN || process.env.RENDER_EXTERNAL_URL || new URL(req.url).origin;
  return req.headers.get('origin') === expected;
 }
-export function authAttemptAllowed(email: string) {
+export async function authAttemptAllowed(email: string) {
+ if(cloudEnabled())return await cloudAccounts.attempt(digest(email));
  // A database counter survives process restarts. Unknown and real accounts use the same limit.
  const db = database(), now = Date.now(), key = digest(email);
  db.prepare('DELETE FROM auth_limits WHERE expires < ?').run(now);

@@ -7,16 +7,17 @@ import { mkdtemp, readFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
+import {existsSync} from 'node:fs';
 
 test('independent accounts, cross-device data, uploads and restart persistence', { timeout: 120000 }, async t => {
  const socket = createServer(); socket.listen(0, '127.0.0.1'); await once(socket, 'listening'); const port = socket.address().port; await new Promise(r => socket.close(r));
  const origin = `http://127.0.0.1:${port}`, dir = await mkdtemp(path.join(os.tmpdir(), 'carenect-test-'));
  let server, output = '';
- const start = async () => {
-  const env={ ...process.env, NODE_ENV: 'production', RENDER_EXTERNAL_URL: origin, DATA_DIR: dir, NEXT_TELEMETRY_DISABLED: '1' };delete env.APP_ORIGIN;
+ const start = async (missingCloud=false) => {
+  const env={ ...process.env, NODE_ENV: 'production', RENDER_EXTERNAL_URL: origin, DATA_BACKEND:missingCloud?'supabase':'sqlite', DATA_DIR: missingCloud?path.join(dir,'no-local-fallback'):dir, NEXT_TELEMETRY_DISABLED: '1' };delete env.APP_ORIGIN;if(missingCloud){delete env.SUPABASE_URL;delete env.SUPABASE_SECRET_KEY;delete env.SUPABASE_SERVICE_ROLE_KEY;}
   server = spawn(process.execPath, ['node_modules/next/dist/bin/next', 'start', '-H', '127.0.0.1', '-p', String(port)], { env, stdio: ['ignore','pipe','pipe'] });
   server.stdout.on('data', x => output += x); server.stderr.on('data', x => output += x);
-  for (let i = 0; i < 150; i++) { try { if ((await fetch(origin + '/api/health')).ok) return; } catch {} if(server.exitCode !== null) throw Error(output); await new Promise(r => setTimeout(r, 200)); }
+  for (let i = 0; i < 150; i++) { try { const r=await fetch(origin + '/api/health');if(missingCloud?r.status===503:r.ok)return; } catch {} if(server.exitCode !== null) throw Error(output); await new Promise(r => setTimeout(r, 200)); }
   throw Error('Server did not start: ' + output);
  };
  const stop = async () => { if (server && server.exitCode === null) { const closed=once(server,'exit');server.kill();await closed; } };
@@ -66,6 +67,11 @@ test('independent accounts, cross-device data, uploads and restart persistence',
   await t.test('saved records, photo and login survive server restart',async()=>{
    const list=(await (await request('/api/care',null,device)).json()).records;assert.ok(list.some(r=>r.id===saved.id));assert.equal((await request(media.url,null,device)).status,200);
    assert.equal((await request('/api/auth',{action:'logout'},owner)).status,200);assert.equal((await request('/api/care',null,owner)).status,401);assert.equal((await request('/api/care',null,device)).status,200);
+  });
+  await stop();await start(true);
+  await t.test('cloud mode fails safely instead of writing to an ephemeral local database',async()=>{
+   assert.equal((await request('/api/health')).status,503);
+   assert.equal(existsSync(path.join(dir,'no-local-fallback','carenect.sqlite')),false);
   });
  } finally { await stop(); }
 });

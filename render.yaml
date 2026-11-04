@@ -1,0 +1,29 @@
+# Free compute only. Persistent data is stored in a Supabase FREE project.
+# Provision and test the Supabase database and private bucket before applying.
+# This file creates no paid disk, database, or compute plan.
+services:
+  - type: web
+    name: carenect
+    runtime: docker
+    plan: free
+    region: singapore
+    numInstances: 1
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    healthCheckPath: /api/health
+    autoDeployTrigger: "off"
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATA_BACKEND
+        value: supabase
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SECRET_KEY
+        sync: false
+      - key: PORT
+        value: "10000"
+      - key: HOSTNAME
+        value: "0.0.0.0"
+      - key: NEXT_TELEMETRY_DISABLED
+        value: "1"

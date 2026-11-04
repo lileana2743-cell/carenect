@@ -17,6 +17,8 @@ services:
       mountPath: /data
       sizeGB: 1
     envVars:
+      - key: DATA_BACKEND
+        value: sqlite
       - key: NODE_ENV
         value: production
       - key: DATA_DIR

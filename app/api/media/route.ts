@@ -17,7 +17,7 @@ export async function POST(req:Request){
   const match=file.type==='image/jpeg'?head[0]===255&&head[1]===216:file.type==='image/png'?head[0]===137&&head[1]===80&&head[2]===78:file.type==='image/webp'?String.fromCharCode(...head.slice(0,4))==='RIFF'&&String.fromCharCode(...head.slice(8,12))==='WEBP':file.type==='video/webm'?head[0]===26&&head[1]===69&&head[2]===223&&head[3]===163:String.fromCharCode(...head.slice(4,8))==='ftyp';
   if(!match)return result({error:'That file could not be read. Choose another photo or video.'},400);
   const id=crypto.randomUUID(),key=id,created=new Date().toISOString();
-  await mediaStore.put(key,bytes);
+  await mediaStore.put(key,bytes,file.type);
   try{await careDb().prepare('INSERT INTO care_records (id, owner, kind, content, created) VALUES (?, ?, ?, ?, ?)').bind(id,owner,'media',JSON.stringify({key,type:file.type,name:file.name.slice(0,100),size:file.size}),created).run();}catch(e){await mediaStore.delete(key);throw e;}
   return result({id,type:file.type,url:'/api/media?id='+id},201);
  }catch(e){console.error('Photo upload failed',e);return result({error:'Could not upload. Your photo is still here. Please try again.'},503);}

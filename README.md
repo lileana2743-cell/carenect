@@ -26,13 +26,13 @@ Tests run a production server with temporary test accounts, an isolated database
 
 ## Host outside GPT
 
-This is a full-stack app, not a GitHub Pages static site. Put this directory in a GitHub repository and deploy it on a Node.js 24 / Docker web host with a persistent disk. A host-provided domain or your own domain works without GPT in the URL.
+This is a full-stack app, not a GitHub Pages static site. A host-provided domain or your own domain works without GPT in the URL. The root `render.yaml` uses **Render Free compute plus Supabase Free durable storage**, with no paid disk or compute plan. See [Free connected hosting](deploy/FREE-HOSTING.md) for project connection, private storage and live verification. A real Supabase project and live host are not connected yet.
 
-The `Dockerfile` builds Next.js standalone output; `compose.yaml` supplies a persistent volume. Start one application instance. Set `APP_ORIGIN` to the exact public HTTPS origin and mount a persistent, writable volume at `/data`. Accounts, SQLite records and private uploads live there. Do not expose or commit `/data` or environment files. Keep a consistent backup of the SQLite database and uploads using the host's backup procedure. Restoring accounts requires restoring this data.
+For local or self-hosted SQLite use, the `Dockerfile` builds Next.js standalone output and `compose.yaml` supplies a persistent volume. Start one application instance and mount a persistent writable volume at `/data`. Accounts, SQLite records and private uploads live there. Do not expose or commit `/data` or environment files. Keep consistent database-native backups with the corresponding private uploads. Restoring accounts requires restoring this data. On Render, select an explicit backend; the free deployment must use `DATA_BACKEND=supabase`, not local SQLite.
 
 On Render, request-origin validation automatically uses the documented `RENDER_EXTERNAL_URL`. Set `APP_ORIGIN` explicitly when serving a custom domain instead.
 
-The owner declined paid hosting. There is deliberately no active root `render.yaml`. The optional, inactive `deploy/render.paid.yaml.example` describes one Docker web service in Singapore, the smallest paid web compute plan (`0.5c-512mb`) and a 1 GB persistent disk at `/data`. Do not activate or apply it without new approval. No hosted resource has been created. The app's server-side data must not be put on Render's free ephemeral filesystem and presented as durable storage.
+The owner declined paid hosting. The optional `deploy/render.paid.yaml.example` is inactive and must not be applied without new approval. The active root Blueprint uses free compute and external durable storage. No hosted resource has been created. Supabase secret keys are server-only environment variables; they must never appear in client code, source control or chat. Database tables and transaction functions deny public and ordinary authenticated Supabase API roles; the Node server verifies its own HttpOnly sessions and scopes data to the Carenect account.
 
 For local Docker use:
 
@@ -40,7 +40,7 @@ For local Docker use:
 docker compose up --build
 ```
 
-Render is one possible host: choose a Docker web service, health check `/api/health`, port `3000`, and persistent disk `/data`. Render's persistent disks require a paid service; its free filesystem loses changes on restart. No paid service has been provisioned by this project. See [Render disks](https://render.com/docs/disks) and [Render free service limits](https://render.com/docs/free). The app is also usable on another host that supplies the same runtime and storage.
+Render's free filesystem loses changes on restart, so the free configuration keeps records and photos in Supabase instead. Free services can sleep; Supabase Free projects have quotas and pause after one week of inactivity. No paid service has been provisioned. See [Render free limits](https://render.com/docs/free) and [Supabase Free pricing](https://supabase.com/pricing). Another Node.js 24 / Docker host with the required database and storage is also supported.
 
 GitHub Actions verifies types, a production build and integration tests. It does not deploy or buy a hosting plan automatically. This repository contains the complete app source; a public website has not been provisioned. A GitHub repository URL is a source-code link, not a running app URL.
 
