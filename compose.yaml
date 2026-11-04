@@ -1,0 +1,13 @@
+services:
+  carenect:
+    build: .
+    ports:
+      - "3000:3000"
+    environment:
+      APP_ORIGIN: ${APP_ORIGIN:-http://localhost:3000}
+      DATA_DIR: /data
+    volumes:
+      - carenect-data:/data
+    restart: unless-stopped
+volumes:
+  carenect-data:

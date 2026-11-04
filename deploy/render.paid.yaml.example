@@ -1,0 +1,29 @@
+# Inactive example only: the owner declined paid hosting.
+# This configuration uses paid compute and a persistent disk.
+# Review the current Render price before applying; writing this file deploys nothing.
+services:
+  - type: web
+    name: carenect
+    runtime: docker
+    plan: 0.5c-512mb
+    region: singapore
+    numInstances: 1
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    healthCheckPath: /api/health
+    autoDeployTrigger: "off"
+    disk:
+      name: carenect-data
+      mountPath: /data
+      sizeGB: 1
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATA_DIR
+        value: /data
+      - key: PORT
+        value: "10000"
+      - key: HOSTNAME
+        value: "0.0.0.0"
+      - key: NEXT_TELEMETRY_DISABLED
+        value: "1"

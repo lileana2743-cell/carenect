@@ -1,0 +1,11 @@
+node_modules/
+.next/
+data/
+.env*
+!.env.example
+*.tsbuildinfo
+.runtime/
+*.zip
+/public/original/
+/public/app-icon-192.png
+/public/app-icon-512.png

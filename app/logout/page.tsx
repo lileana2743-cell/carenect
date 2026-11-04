@@ -1,0 +1,3 @@
+'use client';
+import { useState } from 'react';
+export default function Logout() { const [error, setError] = useState(''); return <main className="independent-auth"><h1>Sign out</h1><p>Sign out of your Carenect account on this device.</p><button className="pill-button lime" onClick={async()=>{try{const r=await fetch('/api/auth',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'logout'})});if(!r.ok)throw Error();location.assign('/');}catch{setError('Could not sign out. Please try again.');}}}>Sign out</button><a href="/senior">Back to my care circle</a>{error&&<p role="alert">{error}</p>}</main>; }

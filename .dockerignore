@@ -1,0 +1,10 @@
+node_modules
+.next
+.git
+data
+.env*
+.runtime
+*.zip
+public/original
+public/app-icon-192.png
+public/app-icon-512.png
