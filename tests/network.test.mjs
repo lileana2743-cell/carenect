@@ -25,8 +25,8 @@ test('independent accounts, cross-device data, uploads and restart persistence',
  const password = 'Carenect-integration-test-123!';
  try {
   await start();
-  await t.test('guests are redirected from all three clients and cannot read or spoof accounts', async()=>{
-   for(const role of ['senior','caregiver','family']) { const r=await fetch(origin+'/'+role+'?screen=arts',{redirect:'manual'});assert.equal(r.status,307);assert.match(r.headers.get('location'),/^\/auth\?return_to=/);assert.ok(decodeURIComponent(r.headers.get('location')).endsWith('/'+role+'?screen=arts')); }
+  await t.test('guests open all three sample clients while private account APIs stay protected', async()=>{
+   for(const role of ['senior','caregiver','family']) { const r=await fetch(origin+'/'+role+'?screen=chats',{redirect:'manual'});assert.equal(r.status,200);assert.ok((await r.text()).includes('Carenect')); }
    assert.equal((await request('/api/care')).status,401);
    assert.equal((await request('/api/care',null,null,{'oai-authenticated-user-id':'spoof','oai-authenticated-user-email':'spoof@test.invalid'})).status,401);
    assert.equal((await request('/original/music-icon.png')).status,200);

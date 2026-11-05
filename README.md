@@ -1,5 +1,7 @@
 # Carenect
 
+Current simple access: https://carenect.onrender.com opens the Senior client directly. Visitors can browse all three English clients without registering or signing in. Saving personal records and cross-device sync remain optional signed-in features. Private APIs and Supabase RLS remain protected. No further platform setup is required for browsing.
+
 An independent, English care app with Senior, Caregiver and Family clients. The original lime, lavender, mood illustrations, restaurant volunteer flow and fine-art exhibition assets are retained. No OpenAI account, GPT domain, Sites runtime, D1 or R2 account is required.
 
 Original binary assets are stored losslessly in `assets/part-*.json`. `pnpm dev` and `pnpm build` restore them to `public/` automatically and verify each SHA-256 checksum. To view the original image and font files separately, run `pnpm assets`. Generated files are excluded from Git; the asset packs are the source of truth.
@@ -13,7 +15,7 @@ pnpm install --frozen-lockfile
 pnpm dev
 ```
 
-Open `http://localhost:3000`. Create an account at `/auth?mode=register`. The same account can sign in from another device and use all three client views at `/senior`, `/caregiver`, `/family`. These routes redirect signed-out visitors to login and retain the requested destination. The landing and login pages remain public.
+Open `http://localhost:3000`. All three client views at `/senior`, `/caregiver`, `/family` are available with sample content without an account. Optional accounts at `/auth?mode=register` keep personal data separate from sample content. Database and media APIs require authentication even though the sample screens are public.
 
 Local development defaults to SQLite. For native Supabase Auth, set `DATA_BACKEND=supabase`, `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY` in an ignored `.env.local`. Apply both migrations in order. The hosted app uses a publishable key and the signed-in user's session; it does not need an administrator or service-role key.
 

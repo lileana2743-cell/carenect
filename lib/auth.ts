@@ -29,7 +29,10 @@ export async function createSession(id: string) {
 }
 export async function revokeSession(token?: string) { if(token)database().prepare('DELETE FROM sessions WHERE token_hash = ?').run(digest(token)); }
 export async function getUser(): Promise<Account | null> {
- if(cloudEnabled()){const {supabaseUser}=await import('./supabase/auth');return await supabaseUser();}
+ if(cloudEnabled()){
+  if(!(await cookies()).getAll().some(c=>/^sb-.+-auth-token(?:\.\d+)?$/.test(c.name)))return null;
+  const {supabaseUser}=await import('./supabase/auth');return await supabaseUser();
+ }
  const token = (await cookies()).get(sessionCookie)?.value;
  if (!token || token.length > 100) return null;
  return database().prepare('SELECT a.id, a.email, a.name, a.role FROM sessions s JOIN accounts a ON a.id=s.account_id WHERE s.token_hash=? AND s.expires>?').get(digest(token), Date.now()) as Account | undefined || null;

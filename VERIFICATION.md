@@ -2,6 +2,8 @@
 
 Updated 5 November 2026 (Asia/Shanghai).
 
+Latest requested simplification: the public root opens `/senior`, and all three sample clients are browsable without login. Private data APIs and RLS continue to require an authenticated owner. This supersedes earlier references below to redirecting guests from client pages. Full account/email setup is optional and is not required to browse the app.
+
 Verified with Node.js 24.22.1 and the committed pnpm lockfile:
 
 - TypeScript and Next.js route generation passed.
