@@ -1,20 +1,27 @@
 # Verification
 
-Verified locally on 4 November 2026 with Node.js 24.22.1 and the included pnpm lockfile:
+Updated 5 November 2026 (Asia/Shanghai).
 
-- TypeScript and generated Next.js route types: passed.
-- Next.js 16.3.4 production build, including standalone output: passed.
-- Complete local suite: 13 tests passed, 0 failed. This includes real production-server tests, an in-memory PostgreSQL migration/permissions suite and captured Supabase HTTP contract tests.
-- All 76 original design assets match the existing Site source byte for byte.
-- The Render Blueprint validates against the current official JSON Schema retrieved from `https://render.com/schema/render.yaml.json`.
-- A fresh production build passes with `DATA_BACKEND=supabase` without requiring a real secret at build time. Runtime configuration is checked by the health endpoint.
-- Network tests use Render's `RENDER_EXTERNAL_URL`, including a sign-in request carrying an internal proxy Host header. Cloud mode with missing credentials returns HTTP 503 and does not create a local fallback database.
-- Original asset packs restore 78 files from an empty directory; every restored file matches the original. No server secret configuration or private account-table code appears in the public JavaScript bundle.
+Verified with Node.js 24.22.1 and the committed pnpm lockfile:
 
-The integration suite verifies unauthenticated browsing of the three clients; rejection of spoofed OpenAI headers; real registration and password login; session-cookie attributes; two devices reading the same account's saved data; separate-account isolation; request-origin checks; password hashes; request-size limits; authenticated original-image upload; rejection of a falsely labeled image; uploaded-file ownership; and records, media and sessions surviving an actual server restart. Logout revokes only that device's session.
+- TypeScript and Next.js route generation passed.
+- Next.js 16.3.4 production build and standalone output passed with native Supabase Auth enabled.
+- 17 local tests passed: production-server account/data/media flows, protected redirects, legacy SQL permissions, native Auth RLS and private object folder isolation, plus SDK HTTP ownership predicates.
+- All 78 packed design/font/icon assets restore with matching SHA-256 checksums.
+- The active Render Blueprint uses Free compute only and no persistent disk. It includes public Supabase connection values, not administrator credentials.
 
-Windows sandbox restrictions prevented the first local service check and standalone link copying. The same production build and integration suite passed with approved local execution outside those restrictions.
+## Real Supabase project
 
-Docker is not installed in this session, so the Docker image has not been run. Visual browser automation was blocked because the Windows browser URL could not be determined reliably; no new screenshot verification is claimed. The original client UI and asset files are retained, with login URLs and account copy changed for independent authentication.
+The owner approved organization `wespxxlguzqfijvefihz`. Project `ousfghrrrzmkmczxzjkr` (`carenect`) was created in Singapore on the Free plan, quoted at $0/month. Both migrations were applied. Profiles and records have RLS enabled with `auth.uid()` ownership checks; UPDATE has both USING and WITH CHECK. Storage is private, limited to 20 MB and accepted MIME types, with per-user folder policies. Identity is validated by Supabase Auth, not by user-editable metadata or OpenAI headers.
 
-No external host has been provisioned. The owner declined paid hosting. The active root `render.yaml` now specifies Render Free compute with Supabase durable data and no paid disk. It passes the current official Render JSON Schema. The paid SQLite/disk example remains inactive. No hosted accounts, private care data, uploaded files, credentials or local runtime state are included in this repository. A real Supabase project, private bucket and Render account authorization are still required before live deployment and real cloud end-to-end checks. Local PostgreSQL and HTTP contract tests do not claim that a remote Supabase project has been tested. There is no new live website URL yet.
+Read-only SQL verified deployed RLS policies and private bucket settings. Security Advisor found only INFO notices for the three unused, intentionally closed legacy account/session/rate-limit tables; no ordinary API grants or policies expose those tables. See https://supabase.com/docs/guides/database/database-linter?lint=0008_rls_enabled_no_policy.
+
+The actual project passed the connection/anonymous-isolation script. A production Next.js server connected to that real project passed protected redirects for all three clients, anonymous record/media rejection, spoofed-header rejection, real Auth wrong-password rejection and invalid email-confirmation-link handling. No account was created and no email was sent. Repeat with `node --env-file=.env.local scripts/setup-cloud.mjs` and `node --env-file=.env.local scripts/check-cloud.mjs` after building.
+
+## Not yet verified or deployed
+
+Successful native Auth sign-up, email delivery, confirmation, authenticated cloud CRUD/media, refresh and logout have not been tested with real users. The temporary administrator fixture deployment was rejected by automatic review; it was not deployed, and that test path was stopped. Local SQLite sign-in/logout tests do not establish that native Supabase sign-in has been exercised.
+
+A public frontend host is not yet deployed. Render CLI still requires account login. After provisioning the actual origin, configure Supabase Auth Site URL/redirect URLs and an SMTP sender for public recipients, then perform signed-in checks and verify persistence after a Render restart. Email confirmation has not been disabled. Password recovery UI and invitation-based cross-account sharing are not implemented.
+
+Docker is unavailable locally, so the Docker image has not been run. No new visual browser verification is claimed. Original English client UI and supplied artwork are retained. No paid hosting was provisioned; no new live website URL is claimed.

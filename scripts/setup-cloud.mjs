@@ -1,16 +1,10 @@
 import {createClient} from '@supabase/supabase-js';
-const url=process.env.SUPABASE_URL,key=process.env.SUPABASE_SECRET_KEY||process.env.SUPABASE_SERVICE_ROLE_KEY;
-if(!url||!key)throw Error('Set server-side SUPABASE_URL and SUPABASE_SECRET_KEY. Never paste keys into chat or source control.');
+// Check a migrated project without possessing an administrator secret.
+const url=process.env.SUPABASE_URL,key=process.env.SUPABASE_PUBLISHABLE_KEY;
+if(!url||!key?.startsWith('sb_publishable_'))throw Error('Set SUPABASE_URL and SUPABASE_PUBLISHABLE_KEY.');
 const client=createClient(url,key,{auth:{persistSession:false,autoRefreshToken:false,detectSessionInUrl:false}});
-const health=await client.from('carenect_accounts').select('id').limit(1);
-if(health.error)throw Error('Apply the Carenect SQL migration to this project before configuring storage.');
-const bucket='carenect-private',existing=await client.storage.getBucket(bucket);
-if(existing.data){
- if(existing.data.public)throw Error('The Carenect media bucket must be private. Review its configuration before continuing.');
- console.log('Carenect database and private media bucket are available.');
-}else{
- if(String(existing.error?.statusCode)!=='404'&&String(existing.error?.statusCode)!=='400')throw Error('Could not inspect cloud photo storage.');
- const result=await client.storage.createBucket(bucket,{public:false,fileSizeLimit:20*1024*1024,allowedMimeTypes:['image/jpeg','image/png','image/webp','video/mp4','video/webm']});
- if(result.error)throw Error('Could not create private photo storage.');
- console.log('Created the private Carenect media bucket. No public access was granted.');
-}
+const profiles=await client.from('carenect_profiles').select('id').limit(1);
+if(profiles.error||profiles.data.length)throw Error('Check the native Auth migration and anonymous profile isolation.');
+const records=await client.from('carenect_records').select('id').limit(1);
+if(!records.error&&records.data.length)throw Error('Private records must not be visible anonymously.');
+console.log('Supabase connection and anonymous data isolation verified. Native Auth and the private bucket are configured by migrations.');

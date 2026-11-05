@@ -14,7 +14,7 @@ test('independent accounts, cross-device data, uploads and restart persistence',
  const origin = `http://127.0.0.1:${port}`, dir = await mkdtemp(path.join(os.tmpdir(), 'carenect-test-'));
  let server, output = '';
  const start = async (missingCloud=false) => {
-  const env={ ...process.env, NODE_ENV: 'production', RENDER_EXTERNAL_URL: origin, DATA_BACKEND:missingCloud?'supabase':'sqlite', DATA_DIR: missingCloud?path.join(dir,'no-local-fallback'):dir, NEXT_TELEMETRY_DISABLED: '1' };delete env.APP_ORIGIN;if(missingCloud){delete env.SUPABASE_URL;delete env.SUPABASE_SECRET_KEY;delete env.SUPABASE_SERVICE_ROLE_KEY;}
+  const env={ ...process.env, NODE_ENV: 'production', RENDER_EXTERNAL_URL: origin, DATA_BACKEND:missingCloud?'supabase':'sqlite', DATA_DIR: missingCloud?path.join(dir,'no-local-fallback'):dir, NEXT_TELEMETRY_DISABLED: '1' };delete env.APP_ORIGIN;if(missingCloud){env.SUPABASE_URL='';env.SUPABASE_PUBLISHABLE_KEY='';delete env.SUPABASE_SECRET_KEY;delete env.SUPABASE_SERVICE_ROLE_KEY;}
   server = spawn(process.execPath, ['node_modules/next/dist/bin/next', 'start', '-H', '127.0.0.1', '-p', String(port)], { env, stdio: ['ignore','pipe','pipe'] });
   server.stdout.on('data', x => output += x); server.stderr.on('data', x => output += x);
   for (let i = 0; i < 150; i++) { try { const r=await fetch(origin + '/api/health');if(missingCloud?r.status===503:r.ok)return; } catch {} if(server.exitCode !== null) throw Error(output); await new Promise(r => setTimeout(r, 200)); }
@@ -25,8 +25,8 @@ test('independent accounts, cross-device data, uploads and restart persistence',
  const password = 'Carenect-integration-test-123!';
  try {
   await start();
-  await t.test('guests browse three original clients, but cannot read or spoof accounts', async()=>{
-   for(const role of ['senior','caregiver','family']) { const r=await request('/'+role);assert.equal(r.status,200);const html=await r.text();assert.ok(html.includes('Carenect'));assert.ok(!html.includes('/signin-with-chatgpt')); }
+  await t.test('guests are redirected from all three clients and cannot read or spoof accounts', async()=>{
+   for(const role of ['senior','caregiver','family']) { const r=await fetch(origin+'/'+role+'?screen=arts',{redirect:'manual'});assert.equal(r.status,307);assert.match(r.headers.get('location'),/^\/auth\?return_to=/);assert.ok(decodeURIComponent(r.headers.get('location')).endsWith('/'+role+'?screen=arts')); }
    assert.equal((await request('/api/care')).status,401);
    assert.equal((await request('/api/care',null,null,{'oai-authenticated-user-id':'spoof','oai-authenticated-user-email':'spoof@test.invalid'})).status,401);
    assert.equal((await request('/original/music-icon.png')).status,200);

@@ -13,7 +13,9 @@ pnpm install --frozen-lockfile
 pnpm dev
 ```
 
-Open `http://localhost:3000`. Create an account at `/auth?mode=register`. The same account can sign in from another device and use all three client views at `/senior`, `/caregiver`, `/family`.
+Open `http://localhost:3000`. Create an account at `/auth?mode=register`. The same account can sign in from another device and use all three client views at `/senior`, `/caregiver`, `/family`. These routes redirect signed-out visitors to login and retain the requested destination. The landing and login pages remain public.
+
+Local development defaults to SQLite. For native Supabase Auth, set `DATA_BACKEND=supabase`, `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY` in an ignored `.env.local`. Apply both migrations in order. The hosted app uses a publishable key and the signed-in user's session; it does not need an administrator or service-role key.
 
 ```sh
 pnpm typecheck
@@ -26,13 +28,13 @@ Tests run a production server with temporary test accounts, an isolated database
 
 ## Host outside GPT
 
-This is a full-stack app, not a GitHub Pages static site. A host-provided domain or your own domain works without GPT in the URL. The root `render.yaml` uses **Render Free compute plus Supabase Free durable storage**, with no paid disk or compute plan. See [Free connected hosting](deploy/FREE-HOSTING.md) for project connection, private storage and live verification. A real Supabase project and live host are not connected yet.
+This is a full-stack app, not a GitHub Pages static site. A host-provided domain or your own domain works without GPT in the URL. The root `render.yaml` uses **Render Free compute plus Supabase Free durable storage**, with no paid disk or compute plan. See [Free connected hosting](deploy/FREE-HOSTING.md). The Supabase Free project and private bucket are provisioned; a public frontend host is still pending.
 
 For local or self-hosted SQLite use, the `Dockerfile` builds Next.js standalone output and `compose.yaml` supplies a persistent volume. Start one application instance and mount a persistent writable volume at `/data`. Accounts, SQLite records and private uploads live there. Do not expose or commit `/data` or environment files. Keep consistent database-native backups with the corresponding private uploads. Restoring accounts requires restoring this data. On Render, select an explicit backend; the free deployment must use `DATA_BACKEND=supabase`, not local SQLite.
 
 On Render, request-origin validation automatically uses the documented `RENDER_EXTERNAL_URL`. Set `APP_ORIGIN` explicitly when serving a custom domain instead.
 
-The owner declined paid hosting. The optional `deploy/render.paid.yaml.example` is inactive and must not be applied without new approval. The active root Blueprint uses free compute and external durable storage. No hosted resource has been created. Supabase secret keys are server-only environment variables; they must never appear in client code, source control or chat. Database tables and transaction functions deny public and ordinary authenticated Supabase API roles; the Node server verifies its own HttpOnly sessions and scopes data to the Carenect account.
+The owner declined paid hosting. The optional `deploy/render.paid.yaml.example` is inactive and must not be applied without new approval. The active root Blueprint uses free compute and the owner's Supabase Free project. Native Supabase Auth issues the cloud sessions. Next.js refreshes them through Proxy, validates identity with `auth.getUser()` and stores cookies as HttpOnly, SameSite and Secure in production. Row-level security restricts profiles, records and private files to the validated `auth.uid()`. Display names and preferred clients are not staff/admin permissions. No service-role or secret key is included or needed by the application.
 
 For local Docker use:
 
@@ -42,16 +44,15 @@ docker compose up --build
 
 Render's free filesystem loses changes on restart, so the free configuration keeps records and photos in Supabase instead. Free services can sleep; Supabase Free projects have quotas and pause after one week of inactivity. No paid service has been provisioned. See [Render free limits](https://render.com/docs/free) and [Supabase Free pricing](https://supabase.com/pricing). Another Node.js 24 / Docker host with the required database and storage is also supported.
 
-GitHub Actions verifies types, a production build and integration tests. It does not deploy or buy a hosting plan automatically. This repository contains the complete app source; a public website has not been provisioned. A GitHub repository URL is a source-code link, not a running app URL.
+GitHub Actions verifies types, a production build and integration tests. It does not deploy or buy a hosting plan automatically. A GitHub repository URL is a source-code link, not a running app URL. See [Verification](VERIFICATION.md) for checks and outstanding deployment work.
 
 ## Accounts and data
 
-- Email/password registration with scrypt password hashes and random HttpOnly, SameSite sessions. Cookies are Secure in production; production requires HTTPS.
-- A sign-in session can be revoked independently via `/logout`. Multiple device sessions access the same account's records.
-- Ten authentication attempts per email per fifteen minutes; no OpenAI identity headers are trusted.
+- Cloud mode uses Supabase Auth email/password registration, confirmation, sign-in, session refresh and local-device logout. The `/auth/callback` PKCE and `/auth/confirm` email-token routes reject invalid links and external return URLs. Supabase handles cloud authentication rate limits. SQLite mode retains scrypt password hashes and opaque per-device sessions with ten attempts per email per fifteen minutes. No OpenAI identity headers are trusted.
+- Multiple device sessions access the same account's records. Supabase access JWTs can remain valid until expiry after sign-out; refresh-token revocation and browser-cookie clearing do not imply immediate revocation of every previously issued access token.
 - Care data and uploaded files are scoped to the signed-in account. Switching clients changes the view within that account; separate accounts are isolated. Invitation-based sharing between different people's accounts is not implemented.
-- Photos and videos are stored outside `public/`; access requires an authenticated owner session. Files have a 20 MB limit and MIME-signature validation.
-- Email verification and password-reset email delivery are not configured. Configure an email provider and recovery flow before offering general public registration. No real patient data was exported from the old site; only original sample content is included.
+- Photos and videos are stored outside `public/`; access requires an authenticated owner session. Cloud objects live in a private bucket under the owner's user ID. Files have a 20 MB limit and MIME-signature validation; authenticated media responses are not cached.
+- Email confirmation stays enabled. Before public registration, set the final site's Auth URL/redirect allowlist and an appropriate SMTP provider. Supabase's default email sender has recipient restrictions; a working email confirmation handler does not mean public email delivery has been configured. A password recovery UI is not included yet. No real patient data was exported from the old site; only original sample content is included.
 
 The health cards are sample measurements, not live device readings. The music player uses labeled sound studies because original song audio was not provided. There are no native push notifications or app-store packages.
 
